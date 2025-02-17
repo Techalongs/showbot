@@ -4,7 +4,7 @@ import com.qualcomm.robotcore.hardware.Gamepad;
 
 public interface MecanumDrivetrain {
 
-    void drive(double limiter, Gamepad gamepad, double y);
+    void drive(double limiter, Gamepad gamepad);
     void moveForward(int ticks);
     void moveBackward(int ticks);
     void turnLeft(int ticks);

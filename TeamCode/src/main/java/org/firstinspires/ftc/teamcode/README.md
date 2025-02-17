@@ -1,10 +1,18 @@
-## TeamCode Module
+## Ferdinand TeamCode Module
 
-Welcome!
+## Controls
 
-This module, TeamCode, is the place where you will write/paste the code for your team's
-robot controller App. This module is currently empty (a clean slate) but the
-process for adding OpModes is straightforward.
+### Driving (Gamepad 1)
+- Normal: `Joysticks`
+- Slow: `Left Bumper` + `Joysticks`
+- Fast: `Right Bumper` + `Joysticks`
+
+### Drone (Gamepad 1)
+- Launch: `D-Pad Up` + `Y`
+
+### Winch (Gamepad 1)
+- Uncurl: `Left Trigger`
+- Curl: `Right Trigger`
 
 ## Connect Wirelessly to Android Hub
 
