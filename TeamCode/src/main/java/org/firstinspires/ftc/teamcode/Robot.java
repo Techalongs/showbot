@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.HardwareMap;
@@ -10,6 +11,7 @@ import com.qualcomm.robotcore.hardware.Servo;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 import java.util.HashMap;
+import java.util.function.Supplier;
 
 public class Robot implements MecanumDrivetrain {
     private final DcMotor frontLeft;
@@ -23,7 +25,17 @@ public class Robot implements MecanumDrivetrain {
     private final HashMap<String, String> extraData = new HashMap<>();
     private double speed;
 
-    public Robot(HardwareMap hardwareMap, Telemetry telemetry, LinearOpMode opMode) {
+    private boolean useWinch = true;
+    private Winch winch;
+    private double winchPowerLimit = 0.5;
+    /** Supplier provides the preference for which control to use for winch power. **/
+    private Supplier<Float> winchPowerSupplier;
+
+    public Robot(HardwareMap hardwareMap, Telemetry telemetry, LinearOpMode opMode, double speed) {
+        this.opMode = opMode;
+        this.telemetry = telemetry;
+        this.speed = speed;
+
         frontLeft = hardwareMap.get(DcMotor.class, "CH1");
         frontRight = hardwareMap.get(DcMotor.class, "CH0");
         backLeft = hardwareMap.get(DcMotor.class, "CH3");
@@ -31,14 +43,28 @@ public class Robot implements MecanumDrivetrain {
         dronePosition = hardwareMap.get(Servo.class, "dronePosition");
         droneLaunch = hardwareMap.get(Servo.class, "droneLaunch");
 
-        this.telemetry = telemetry;
-        this.opMode = opMode;
-        this.speed = 0.5;
+        winchPowerSupplier = () -> this.opMode.gamepad1.right_trigger - this.opMode.gamepad1.left_trigger;
+
+        try {
+            DcMotorEx winchMotor = hardwareMap.get(DcMotorEx.class, "WinchMotor");
+            winchMotor.setDirection(DcMotorSimple.Direction.FORWARD);
+            winchMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            winchMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            winchMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            winch = new Winch("Winch", winchMotor);
+            winch.setMotorPowerLimit(winchPowerLimit);
+            useWinch = true;
+        } catch (IllegalArgumentException e) {
+            this.updateTelemetry("Winch Warning", "WinchMotor was not found");
+            useWinch = false;
+        } catch (Throwable t) {
+            this.updateTelemetry("Winch Error", "Fatal: " + t.getMessage());
+            useWinch = false;
+        }
     }
 
-    public Robot(HardwareMap hardwareMap, Telemetry telemetry, LinearOpMode opMode, double speed) {
-        this(hardwareMap, telemetry, opMode);
-        this.speed = speed;
+    public Robot(HardwareMap hardwareMap, Telemetry telemetry, LinearOpMode opMode) {
+        this(hardwareMap, telemetry, opMode, 0.5);
     }
 
     public void init(double positionAngle) {
@@ -65,7 +91,7 @@ public class Robot implements MecanumDrivetrain {
     }
 
     @Override
-    public void drive(double limiter, Gamepad gamepad, double y) {
+    public void drive(double limiter, Gamepad gamepad) {
         float FLPower = (-gamepad.left_stick_y + gamepad.right_stick_x) + gamepad.left_stick_x;
         float FRPower = (-gamepad.left_stick_y - gamepad.right_stick_x) - gamepad.left_stick_x;
         float BLPower = (-gamepad.left_stick_y + gamepad.right_stick_x) - gamepad.left_stick_x;
@@ -143,6 +169,16 @@ public class Robot implements MecanumDrivetrain {
         droneLaunch.setPosition(1);
     }
 
+    public void setWinchPowerSupplier(Supplier<Float> supplier) {
+        this.winchPowerSupplier = supplier;
+    }
+
+    public void updateWinch() {
+        if (useWinch) {
+            winch.setPower(winchPowerSupplier.get());
+        }
+    }
+
     public double getFLMotorPower() {
         return frontLeft.getPower();
     }
@@ -189,6 +225,7 @@ public class Robot implements MecanumDrivetrain {
 
     public void displayData() {
         telemetry.addData("Status", "Running");
+        telemetry.addData("Winch Power", getFLMotorPower());
         telemetry.addData("Front Left Power", getFLMotorPower());
         telemetry.addData("Front Right Power", getFRMotorPower());
         telemetry.addData("Back Left Power", getBLMotorPower());
@@ -197,6 +234,9 @@ public class Robot implements MecanumDrivetrain {
         telemetry.addData("Front Right Position", getFRMotorPosition());
         telemetry.addData("Back Left Position", getBLMotorPosition());
         telemetry.addData("Back Right Position", getBRMotorPosition());
+        if (useWinch) {
+            winch.updateTelemetry(telemetry);
+        }
 
         for (String caption : extraData.keySet()) {
             telemetry.addData(caption, extraData.get(caption));
@@ -204,4 +244,10 @@ public class Robot implements MecanumDrivetrain {
 
         telemetry.update();
     }
+
+    public void updateTelemetry(String caption, Object value) {
+        telemetry.addData(caption, value);
+        telemetry.update();
+    }
+
 }

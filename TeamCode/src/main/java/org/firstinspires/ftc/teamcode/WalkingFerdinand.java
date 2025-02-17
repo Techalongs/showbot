@@ -20,11 +20,9 @@ public class WalkingFerdinand extends LinearOpMode {
         while (opModeIsActive()) {
             if (opModeIsActive()) {
                 // Drivetrain controls
-                double y = 0;
-
-                if (gamepad1.right_bumper) ferdinand.drive(0.5, gamepad1, y); // Standard - 0.84
-                else if (gamepad1.left_bumper) ferdinand.drive(0.1, gamepad1, y); // Standard - 0.4
-                else ferdinand.drive(0.3, gamepad1, y);
+                if (gamepad1.right_bumper) ferdinand.drive(0.5, gamepad1); // Standard - 0.84
+                else if (gamepad1.left_bumper) ferdinand.drive(0.1, gamepad1); // Standard - 0.4
+                else ferdinand.drive(0.3, gamepad1);
                 // Set normal speed to 0.5 at beginning of next season - for practice
 
                 // Drone controls
